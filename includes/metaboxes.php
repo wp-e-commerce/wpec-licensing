@@ -57,7 +57,7 @@ function wpec_licensing_product_meta_box() {
 					echo '</select>';
 				echo '</p>';
 			echo '</td>';
-		echo '</tr>';		
+		echo '</tr>';
 
 		echo '<tr>';
 			echo '<td class="edd_field_type_select" colspan="2">';
@@ -68,11 +68,13 @@ function wpec_licensing_product_meta_box() {
 						'numberposts' => -1,
 						'post_status' => 'all'
 					);
-					$attached_files = (array)get_posts( $args );
+					$attached_files = (array) get_posts( $args );
 					if ( ! empty( $attached_files ) ) {
 						foreach( $attached_files as $file ) {
 							echo '<option value="' . esc_attr( $file->ID ) . '" ' . selected( $file->ID, $file_id, false ) . '>' . esc_html( $file->post_title ) . '</option>';
 						}
+					} else {
+						echo '<option value="">' . __( 'You must upload product files to select here', 'wpec-licensing' ) . '</option>';
 					}
 				echo '</select>&nbsp;';
 				echo '<label for="wpec_lic_upgrade_file">' . __( 'Choose the source file to be used for automatic updates.', 'wpec-licensing' ) . '</label>';
@@ -136,12 +138,12 @@ function wpec_lic_product_meta_box_save( $post_id ) {
 	} else {
 		delete_post_meta( $post_id, '_wpec_lic_exp_length' );
 	}
-	
+
 	if ( isset( $_POST['wpec_lic_upgrade_file'] ) ) {
 		update_post_meta( $post_id, '_wpec_lic_upgrade_file', addslashes( $_POST['wpec_lic_upgrade_file'] ) ) ;
 	} else {
 		delete_post_meta( $post_id, '_wpec_lic_upgrade_file' );
 	}
-	
+
 }
 add_action( 'save_post', 'wpec_lic_product_meta_box_save' );
