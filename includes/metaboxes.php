@@ -1,7 +1,7 @@
 <?php
 function wpec_licensing_new_meta_boxes() {
 	$user_ID = get_current_user_id();
-	
+
 	if ( current_user_can( 'manage_options' ) ) {
 		add_meta_box( 'wpec_licensing_add_license_to_product', 'Product License', 'wpec_licensing_product_meta_box', 'wpsc-product', 'normal', 'core' );
 	}
@@ -10,11 +10,11 @@ add_action( 'admin_menu', 'wpec_licensing_new_meta_boxes' );
 
 function wpec_licensing_product_meta_box() {
 	global $post;
-	
+
 	echo '<input type="hidden" name="wpec_lic_meta_box_nonce" value="'. wp_create_nonce( basename( __FILE__ ) ). '" />';
 
 	echo '<table class="form-table">';
-	
+
 		$enabled    = get_post_meta( $post->ID, '_wpec_lic_enabled', true ) ? true : false;
 		$limit      = get_post_meta( $post->ID, '_wpec_lic_limit', true );
 		$exp_unit   = get_post_meta( $post->ID, '_wpec_lic_exp_unit', true );
@@ -24,9 +24,9 @@ function wpec_licensing_product_meta_box() {
 
 		$is_limited = get_post_meta( $post->ID, '_wpec_lic_download_lifetime', true );
 		$is_limited = empty( $is_limited );
-		
+
 		$display_length    = ( $enabled && $is_limited )  ? '' : ' style="display: none;"';
-		
+
 		echo '<tr>';
 			echo '<td class="edd_field_type_text" colspan="2">';
 				echo '<input type="checkbox" name="wpec_license_enabled" id="wpec_license_enabled" value="1" ' . checked( true, $enabled, false ) . '/>&nbsp;';
@@ -37,10 +37,10 @@ function wpec_licensing_product_meta_box() {
 		echo '<tr' . $display . ' class="wpec_lic_toggled_row">';
 			echo '<td class="edd_field_type_text" colspan="2">';
 				echo '<input type="number" class="small-text" name="wpec_lic_limit" id="wpec_lic_limit" value="' . esc_attr( $limit ) . '"/>&nbsp;';
-				echo __( 'Limit number of times this license can be activated.', 'wpec-licensing' );
+				echo __( 'Limit number of times this license can be activated. Enter "0" for Unlimited.', 'wpec-licensing' );
 			echo '</td>';
 		echo '</tr>';
-		
+
 		echo '<tr' . $display . ' class="wpec_lic_toggled_row">';
 			echo '<td class="edd_field_type_select">';
 				echo '<p>' . __( 'How long are license keys valid for?', 'wpec-licensing' ) . '</p>';
