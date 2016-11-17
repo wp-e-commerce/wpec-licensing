@@ -1,24 +1,24 @@
 <?php
 function wpec_lic_renewals_enabled() {
 	$settings = get_option( 'wpec_licensing' );
- 
+
 	$ret = isset( $settings['enable_renewals'] ) ? true : false;
 
 	return $ret;
 }
 
 function wpec_keys_renewal_form() {
-	
+
 	if( ! wpec_lic_renewals_enabled() ) {
 		return;
 	}
-	
+
 	$renewal_keys = wpsc_get_customer_meta( 'wpec_keys_license_key' );
 	$preset_key   = ! empty( $_GET['license_key'] ) ? esc_html( urldecode( $_GET['license_key'] ) ) : '';
 	$error        = ! empty( $_GET['wpec-sl-error'] ) ? sanitize_text_field( $_GET['wpec-sl-error'] ) : '';
 
 	ob_start(); ?>
-	
+
 	<form method="post" id="wpec_keys_renewal_form">
 		<fieldset id="wpec_keys_renewal_fields">
 			<p id="wpec_keys_show_renewal_form_wrap">
@@ -65,11 +65,11 @@ add_action('wpsc_before_shipping_of_shopping_cart', 'wpec_keys_renewal_form', -1
 
 function wpec_keys_listen_for_renewal_checkout() {
 	global $wpdb;
-	
+
 	if( empty( $_REQUEST['wpec_lic_license_key'] ) ) {
 		return;
 	}
-	
+
 	$license_key = sanitize_text_field( $_REQUEST['wpec_lic_license_key'] );
 	$added = wpec_lic_add_renewal_to_cart( sanitize_text_field( $license_key ), true );
 
@@ -79,14 +79,14 @@ function wpec_keys_listen_for_renewal_checkout() {
 		wpsc_update_customer_meta( 'wpec_keys_license_product', $lic_data['product_name'] );
 		$redirect = get_option( 'checkout_url' );
 	} else {
-		
+
 		$code     = $added->get_error_code();
 		$message  = $added->get_error_message();
 		$redirect = add_query_arg( array( 'wpec-sl-error' => $code, 'message' => urlencode( $message ) ), get_option( 'checkout_url' ) );
 	}
-	
+
 	wp_safe_redirect( $redirect ); exit;
-	
+
 }
 add_action( 'template_redirect', 'wpec_keys_listen_for_renewal_checkout' );
 
@@ -101,10 +101,10 @@ function wpec_lic_apply_license_renewal( $data ) {
 
 	if( $added && ! is_wp_error( $added ) ) {
 		$license_data = wpec_lic_get_license_by_key( $license );
-		
+
 		wpsc_update_customer_meta( 'wpec_keys_license_key', $license );
 		wpsc_update_customer_meta( 'wpec_keys_license_product', $license_data['product_name'] );
-		
+
 		$redirect = get_option( 'checkout_url' );
 
 	} else {
@@ -120,16 +120,16 @@ function wpec_lic_apply_license_renewal( $data ) {
 add_action( 'wpec_lic_apply_license_renewal', 'wpec_lic_apply_license_renewal' );
 
 function wpec_lic_cancel_license_renewal() {
-	
+
 	if( ! wpec_lic_renewals_enabled() ) {
 		return;
 	}
-	
+
 	wpsc_delete_customer_meta( 'wpec_keys_renewal_key' );
 	wpsc_delete_customer_meta( 'wpec_keys_license_key' );
 	wpsc_delete_customer_meta( 'wpec_keys_is_renewal' );
-	
-	
+
+
 	wp_safe_redirect( get_option( 'checkout_url' ) );
 	exit;
 }
@@ -172,21 +172,21 @@ function wpec_lic_add_renewal_to_cart( $license_id = 0, $by_key = false ) {
 	$purchase_log = new WPSC_Purchase_Log( $payment_id );
 	$product_id = $license['product_id'];
 	$product    = get_post( $product_id );
-	
+
 	if( ! $purchase_log->is_transaction_completed() ) {
 		return new WP_Error( 'payment_not_complete', __( 'The purchase record for this license is not marked as complete', 'edd_sl' ) );
 	}
-	
+
 	if ( '1' !== $license['active'] ) {
 		return new WP_Error( 'license_disabled', __( 'The supplied license has been disabled and cannot be renewed', 'edd_sl' ) );
 	}
-	
+
 	if ( ! in_array( $product->post_status, array( 'publish', 'inherit' ) ) ) {
 		return new WP_Error( 'license_disabled', __( 'The product for this license is not published', 'edd_sl' ) );
 	}
-	
+
 	$parameters = array( 'quantity' => '1' );
-	
+
 	// Make sure it's not already in the cart
 	foreach ( (array) $wpsc_cart->cart_items as $position => $cart_item ) {
 		if ( (int)$cart_item->product_id == (int)$product_id ) {
@@ -194,28 +194,29 @@ function wpec_lic_add_renewal_to_cart( $license_id = 0, $by_key = false ) {
 			continue;
 		}
 	}
-	
+
 	// Check if product has variations and if it does pass the correct $parameters to the cart
 	$parent_id = wpsc_product_is_variation( $product_id );
+
 	if ( $parent_id ) {
 		// This is a variation of a product
 		// Get variation term id and pass that to the cart
-		$parameters['product_name'] = $license['product_name'];
+		$parameters['variation_values'] = wp_list_pluck( wp_get_object_terms( $product_id, 'wpsc-variation' ), 'term_id' );
 	}
-	
-	
+
+
 	// Confirm item was added to cart successfully
 	if( ! $wpsc_cart->set_item( $product_id, $parameters ) ) {
 		return new WP_Error( 'not_in_cart', __( 'The download for this license is not in the cart or could not be added', 'edd_sl' ) );
 	}
-	
+
 	$success = true;
 
 	if( true === $success ) {
 
 		wpsc_update_customer_meta( 'wpec_keys_is_renewal', '1' );
 		wpsc_update_customer_meta( 'wpec_keys_renewal_key', $license['license_key'] );
-		
+
 		return true;
 
 	}
@@ -225,7 +226,7 @@ function wpec_lic_add_renewal_to_cart( $license_id = 0, $by_key = false ) {
 }
 
 function wpec_lic_set_renewal_flag( $data ) {
-	
+
 	if( ! wpec_lic_renewals_enabled() ) {
 		return;
 	}
@@ -238,7 +239,7 @@ function wpec_lic_set_renewal_flag( $data ) {
 		$purchase_log = new WPSC_Purchase_Log( $data['purchase_log_id'] );
 		$purchase_log->set( '_wpec_lic_is_renewal', '1' )->save();
 		$purchase_log->set( '_wpec_lic_renewal_key', $renewal_key )->save();
-		
+
 		wpsc_delete_customer_meta( 'wpec_keys_renewal_key' );
 		wpsc_delete_customer_meta( 'wpec_keys_license_key' );
 		wpsc_delete_customer_meta( 'wpec_keys_is_renewal' );
